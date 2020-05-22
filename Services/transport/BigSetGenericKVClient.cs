@@ -1,9 +1,8 @@
 using System;
-using BooksApi.Models;
-using Microsoft.AspNetCore.JsonPatch.Operations;
+using System.Net;
+using System.Text;
 using Newtonsoft.Json;
 using org.openstars.core.bigset.Generic;
-using Thrift;
 using Thrift.Protocol;
 using Thrift.Transport;
 using Thrift.Transport.Client;
@@ -16,24 +15,72 @@ namespace BooksApi.Services.transport
         {
             try
             {
-                TTransport transport = new TSocketTransport("127.0.0.1", 18990, 1000000);
-                TProtocol protocol = new TBinaryProtocol(transport);
+                IPAddress ipaddress = IPAddress.Parse("127.0.0.1");
+                TTransport transport = new TSocketTransport(ipaddress, 18990, 100000);
+                TFramedTransport tFrameTransport = new TFramedTransport(transport);
+                TProtocol protocol = new TBinaryProtocol(tFrameTransport);
                 TStringBigSetKVService.Client client = new TStringBigSetKVService.Client(protocol);
-        
+
+                client.OpenTransportAsync();
+                Console.WriteLine("transport.IsOpen");
+                Console.WriteLine(transport.IsOpen);
+                
                 if (transport.IsOpen)
                 {
-                    Book book = new Book();
-                    book.Author = "Auth";
-                    book.Category = "Category";
-                    book.Id = "12123";
-                    book.Price = 10123;
-                    book.BookName = "Book Name";
+                    // Book book = new Book();
+                    // book.Author = "Auth";
+                    // book.Category = "Category";
+                    // book.Id = "12123";
+                    // book.Price = 10123;
+                    // book.BookName = "Book Name";
+                    //
+                    // var bookJson = JsonConvert.SerializeObject(book);
+                    // var bJson = Encoding.ASCII.GetBytes(bookJson);;
+                    // var str = Encoding.UTF8.GetString(bJson);
+                    // // Console.WriteLine(bJson);
+                    // Console.WriteLine(str);
+                    // var tItem = new TItem();
+                    // tItem.Key = Encoding.ASCII.GetBytes(book.Id);
+                    // tItem.Value = bJson;
+                    //
+                    // var bsPutItemAsync = client.bsPutItemAsync("Test", tItem);
+                    // Console.WriteLine(bsPutItemAsync.IsCompleted);
+                    // if (bsPutItemAsync.IsCompleted == false)
+                    // {
+                    //     bsPutItemAsync.Wait();
+                    // }
+                    // // ========================
 
-                    var bookJson = JsonConvert.SerializeObject(book);
-                    Console.WriteLine(bookJson, "bookJson");
-        
-                    // client.bsPutItemAsync("Test", new TItem(new []{}))
-                    // Console.WriteLine("ping()");
+                    // var serializeObject = JsonConvert.SerializeObject(bsPutItemAsync);
+                    // Console.WriteLine(serializeObject);
+                    
+                    // Get data from thrift
+                    var bsGetItemAsync = client.bsGetItemAsync("Test", Encoding.ASCII.GetBytes("12123"));
+                    // bsGetItemAsync.Start();
+                    // bsGetItemAsync.RunSynchronously();
+                    
+                    Console.WriteLine("serializeObject: ");
+                    Console.WriteLine(bsGetItemAsync.IsCanceled);
+                    Console.WriteLine(bsGetItemAsync.IsFaulted);
+                    Console.WriteLine(bsGetItemAsync.IsCompleted);
+                    if (bsGetItemAsync.IsCompleted == false)
+                    {
+                        Console.WriteLine("bsGetItemAsync.IsCompleted == false");
+                        bsGetItemAsync.Wait();
+                    }
+                    Console.WriteLine(bsGetItemAsync.IsCompletedSuccessfully);
+                    Console.WriteLine(bsGetItemAsync.Status);
+                    Console.WriteLine(bsGetItemAsync.Id);
+                    // bsGetItemAsync.Wait();
+                    
+                    Console.WriteLine(bsGetItemAsync.ToString());
+                    // Console.WriteLine(bsGetItemAsync.Result.Item.Value);
+                    var obj = Encoding.UTF8.GetString(bsGetItemAsync.Result.Item.Value);
+                    Console.WriteLine(obj);
+                    // ==========================
+                    
+                    
+                    
                     //
                     // int sum = client.add(1, 1);
                     // Console.WriteLine("1+1={0}", sum);
@@ -72,6 +119,8 @@ namespace BooksApi.Services.transport
             }
             catch (Exception e)
             {
+                Console.WriteLine(e.Data);
+                Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
             }
         }
